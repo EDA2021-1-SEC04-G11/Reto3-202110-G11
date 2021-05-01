@@ -24,7 +24,7 @@ import config as cf
 import sys
 import controller
 from DISClib.ADT import list as lt
-assert cf
+iassert cf
 
 
 """
@@ -187,7 +187,10 @@ while True:
             else:
                 value= False 
     elif int(inputs[0]) == 7:
-        pass
+        
+        initialDate = input("Fecha Inicial (YYYY-MM-DD): ")
+        finalDate = input("Fecha Final (YYYY-MM-DD): ")
+        total = controller.get(cont, initialDate, finalDate)
     else:
         sys.exit(0)
 sys.exit(0)

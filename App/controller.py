@@ -20,7 +20,7 @@
  * You should have received a copy of the GNU General Public License
  * along withthis program.  If not, see <http://www.gnu.org/licenses/>.
  """
-
+import datetime
 import config as cf
 import model
 import csv
@@ -68,7 +68,7 @@ def loadEvents(analyzer):
     las categorías específicas
     """
 
-    context_file = cf.data_dir + 'context_content_features-small.csv'
+    context_file = cf.data_dir + 'context_content_features-5pct.csv'
     input_file = csv.DictReader(open(context_file, encoding="utf-8"),
                                 delimiter=",")
     
@@ -79,7 +79,7 @@ def loadEvents(analyzer):
     
 
 def loadUserTrack_file(analyzer):
-    userTrack_file = cf.data_dir + 'user_track_hashtag_timestamp-small.csv'
+    userTrack_file = cf.data_dir + 'user_track_hashtag_timestamp-5pct.csv'
     input_file = csv.DictReader(open(context_file, encoding="utf-8"),
                                     delimiter=",")
     for event in input_file:
@@ -90,7 +90,7 @@ def loadSentiment(analyzer):
     input_file = csv.DictReader(open(userTrack_file, encoding="utf-8"),
                                     delimiter=",")
     for event in input_file:
-        model.add_sentiment(analyzer, event)
+        model.addHashTag(analyzer, event)
 
 def loadmusical_genre(analyzer):
     model.newUserGenre(analyzer,"reggae",60, 90)
@@ -128,6 +128,14 @@ def newUserGenre(analyzer,new_genre,tempo_low,tempo_high):
 
 def genreSearch(cont,genres):
     return model.genreSearch(cont,genres)
+
+
+def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
+    initialDate = datetime.datetime.strptime(initialDate, '%H:%M')
+    finalDate = datetime.datetime.strptime(finalDate, '%H:%M')
+
+    return model.getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate.date(), finalDate.date())
+
 # ======================================
 # Funciones de tamaño del catálogo
 # ======================================

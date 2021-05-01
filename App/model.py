@@ -24,7 +24,7 @@
  *
  * Dario Correal - Version inicial
  """
-
+import datetime
 import random
 import config as cf
 from DISClib.ADT import list as lt
@@ -81,12 +81,16 @@ def newAnalyzer():
     analyzer['danceability'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     analyzer['valence'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     analyzer['tempo'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
+    analyzer['dates_c'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
+    analyzer['dates_u'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     
+
     # Tablas de Hash 
     analyzer['artist_ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer['track_ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer["musical_genre"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
-    
+    analyzer["hashtag"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
+
     return analyzer
 
 # ==============================
@@ -98,11 +102,20 @@ def add_event(analyzer, event):
 
     addArtist_ID(analyzer,event["artist_id"].strip(),event)
     addTrack_ID(analyzer,event["track_id"].strip(),event)
+    addHashTag(analyzer,event["hashtag"].strip(),event)
     
     
     for key in analyzer.keys():
         if analyzer[key]["type"] == "RBT":
             update_keys(analyzer,event,key)
+
+    updateDateIndex(analyzer["dates_c"], event)
+
+            
+ def add_userTrack(analyzer, event):
+
+     updateDateIndex(analyzer["dates_u"], event)
+
 
 # ==============================
 # Funciones para creación
@@ -119,7 +132,7 @@ def new_musical_genre(name,lower,upper):
     genre["events"] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     return genre
 # ==============================
-# Funciones para update
+# Funciones para add
 # ==============================
 
 def addArtist_ID(analyzer, artist_n,event):
@@ -158,6 +171,30 @@ def addTrack_ID(analyzer, artist_n,event):
         valor= me.getValue(artsta)
     lt.addLast(valor,event)
 
+def addHashTag(analyzer, artist_n,event):
+    """
+    param analyzer: el catálogo de videos subidos con loadData()
+    param artist_n: nombre del artista que se va a guardar 
+    param video: c/ video 
+    returns: Adicional por país específico
+    """
+    artist = analyzer["hashtag"]
+    moj= mp.contains(artist,artist_n)
+    if moj:
+        valoactual = mp.get(artist,artist_n) 
+        valor = me.getValue(valoactual)
+    else:
+        mp.put(artist,artist_n.lower(),lt.newList("ARRAY_LIST"))
+        artsta = mp.get(artist,artist_n)
+        valor= me.getValue(artsta)
+    lt.addLast(valor,event)
+
+def add_music_genre(analyzer, tag):
+    newtag = new_musical_genre(tag['\ufeff"genero"'],tag["bpm_min"],tag["bpm_max"])
+    mp.put(analyzer["musical_genre"] ,tag['\ufeff"genero"'], newtag)
+# ==============================
+# Funciones para update
+# ==============================
 def update_keys(analyzer, track_n,key):
     
     analyzer_rbt = analyzer[key]
@@ -170,11 +207,41 @@ def update_keys(analyzer, track_n,key):
         valor = {key: moj, "events": lt.newList("ARRAY_LIST")}
         om.put(analyzer_rbt,moj,valor) 
     lt.addLast(valor["events"],track_n)
-    
 
-def add_music_genre(analyzer, tag):
-    newtag = new_musical_genre(tag['\ufeff"genero"'],tag["bpm_min"],tag["bpm_max"])
-    mp.put(analyzer["musical_genre"] ,tag['\ufeff"genero"'], newtag)
+def updateDateIndex(map, event):
+    """
+    Se toma la fecha del crimen y se busca si ya existe en el arbol
+    dicha fecha.  Si es asi, se adiciona a su lista de crimenes
+    y se actualiza el indice de tipos de crimenes.
+
+    Si no se encuentra creado un nodo para esa fecha en el arbol
+    se crea y se actualiza el indice de tipos de crimenes
+    """
+    occurreddate = event['created_at']
+    eventdate = datetime.datetime.strptime(occurreddate, '%H:%M')
+    entry = om.get(map, crimedate.date())
+    if entry is None:
+        datentry = newDataEntry(event)
+        om.put(map, eventdate.date(), datentry)
+    else:
+        datentry = me.getValue(entry)
+    addDateIndex(datentry, event)
+    return map
+
+def newDataEntry(crime):
+    """
+    Crea una entrada en el indice por fechas, es decir en el arbol
+    binario.
+    """
+    entry = {'created_at': None, 'value': None}
+    entry['offenseIndex'] = m.newMap(numelements=30,
+                                     maptype='PROBING',
+                                     comparefunction=compareOffenses)
+    entry['lstcrimes'] = lt.newList('SINGLE_LINKED', compareDates)
+    return entry
+
+
+
     
 
 
@@ -310,6 +377,45 @@ def genreSearch(analyzer,genres):
 # REQUERIMIENTO 5
 #-------------------------------
 # ==============================
+def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
+    lst = om.values(analyzer['dates_c'], initialDate, finalDate)
+    lst1 = om.values(analyzer['dates_u'], initialDate, finalDate) 
+
+    videosct = lt.newList("ARRAY_LIST")
+    videosct1 = lt.newList("ARRAY_LIST")
+    videosct2 = lt.newList("ARRAY_LIST")
+    # filtro 1: por minKey y MaxKey 
+    
+    totchar = 0 # contador 
+    for lstdate in lt.iterator(lst):
+        # cuenta el número de tracks y las suma 
+        totchar += lt.size(lstdate['events'])
+        # filtro 2: crea una list con artist_id y saca lt.size()
+        for element in lt.iterator(lstdate["events"]):
+            if lt.isPresent(videosct, element['artist_id'])==0: 
+                lt.addLast(videosct, element['artist_id'])
+    
+    totchar = 0 # contador 
+    for lstdate in lt.iterator(lst):
+        # cuenta el número de tracks y las suma 
+        totchar += lt.size(lstdate['events'])
+        # filtro 2: crea una list con artist_id y saca lt.size()
+        for element in lt.iterator(lstdate["events"]):
+            if lt.isPresent(videosct1, element['track_id'])==0: 
+                lt.addLast(videosct1, element['track_id'])
+
+    for videos in lt.iterator(videosct):
+        if lt.isPresent(videosct1,videos):
+            lt.addLast(videosct2,videos)
+
+
+
+
+
+
+
+
+
 # Funciones de Comparacion
 # ==============================
 
