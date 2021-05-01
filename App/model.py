@@ -240,11 +240,6 @@ def newDataEntry(crime):
     entry['lstcrimes'] = lt.newList('SINGLE_LINKED', compareDates)
     return entry
 
-
-
-    
-
-
 # ==============================
 # Funciones de consulta
 # ==============================
