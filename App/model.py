@@ -424,7 +424,7 @@ def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
         for x in (y["events"]["elements"]):
             if  mp.contains(analyzer["track_ID_S"],x["track_id"]):
                 lt.addLast(lst, x)
-    print(lt.size(lst))
+    
 
         
 
@@ -475,7 +475,7 @@ def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
     print("***************************************************")
     print("El top genero es " +str(maximom)+" Con un toal de reproduciones de : " +str(max))
     para=0
-
+    print("***************************************************")
     for x in lt.iterator(maximo):
         para+=1
         p=( mp.get(analyzer["track_ID_S"],x["track_id"]))
@@ -495,7 +495,7 @@ def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
                    
                  
                 
-                    dic[z["track_id"]]=[x["vader_avg"],total]
+                    dic[z["track_id"]]={"reproduciones : " : total, "vader : " : (x["vader_avg"])}
           
             
 
@@ -517,29 +517,7 @@ def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
 
     
 
-        
-   
-    #lst1 = om.values(analyzer['dates_u'], initialDate, finalDate)
     
-    videosct = lt.newList("ARRAY_LIST")
-    videosct1 = lt.newList("ARRAY_LIST")
-    videosct2 = lt.newList("ARRAY_LIST")
-    
-    
-
-
-        
-   
-
-    
-  
-
-
-
-
-
-
-
 
 
 # Funciones de Comparacion
