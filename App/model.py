@@ -81,7 +81,7 @@ def newAnalyzer():
     analyzer['danceability'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     analyzer['valence'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     analyzer['tempo'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
-    analyzer['dates_c'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
+    analyzer['created_at'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     analyzer['dates_u'] = om.newMap(omaptype='RBT',comparefunction=compareDates)
     
 
@@ -89,7 +89,8 @@ def newAnalyzer():
     analyzer['artist_ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer['track_ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer["musical_genre"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
-    analyzer["hashtag"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
+    analyzer["sen"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
+    analyzer['track_ID_S'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
 
     return analyzer
 
@@ -102,19 +103,51 @@ def add_event(analyzer, event):
 
     addArtist_ID(analyzer,event["artist_id"].strip(),event)
     addTrack_ID(analyzer,event["track_id"].strip(),event)
-    addHashTag(analyzer,event["hashtag"].strip(),event)
+    
     
     
     for key in analyzer.keys():
-        if analyzer[key]["type"] == "RBT":
+        if analyzer[key]["type"] == "RBT" and key != 'dates_u' and key != 'created_at' :
             update_keys(analyzer,event,key)
 
-    updateDateIndex(analyzer["dates_c"], event)
+    updateDateIndex(analyzer, event, "created_at")
 
             
- def add_userTrack(analyzer, event):
+def add_userTrack(analyzer, event):
+    artist_n=event["track_id"].strip()
 
-     updateDateIndex(analyzer["dates_u"], event)
+    artist = analyzer['track_ID_S']
+    moj= mp.contains(artist,artist_n)
+    if moj:
+        valoactual = mp.get(artist,artist_n) 
+        valor = me.getValue(valoactual)
+    else:
+        mp.put(artist,artist_n,lt.newList("ARRAY_LIST"))
+        artsta = mp.get(artist,artist_n)
+        valor= me.getValue(artsta)
+    lt.addLast(valor,event)
+def add_sentiment(analyzer, event):
+    artist_n=event["hashtag"].strip()
+
+    artist = analyzer['sen']
+  
+    moj= mp.contains(artist,artist_n)
+    if moj:
+        valoactual = mp.get(artist,artist_n) 
+        valor = me.getValue(valoactual)
+    else:
+        mp.put(artist,artist_n,lt.newList("ARRAY_LIST"))
+        artsta = mp.get(artist,artist_n)
+        valor= me.getValue(artsta)
+    lt.addLast(valor,event)
+    
+    
+    
+    
+
+
+  
+    
 
 
 # ==============================
@@ -171,23 +204,7 @@ def addTrack_ID(analyzer, artist_n,event):
         valor= me.getValue(artsta)
     lt.addLast(valor,event)
 
-def addHashTag(analyzer, artist_n,event):
-    """
-    param analyzer: el catálogo de videos subidos con loadData()
-    param artist_n: nombre del artista que se va a guardar 
-    param video: c/ video 
-    returns: Adicional por país específico
-    """
-    artist = analyzer["hashtag"]
-    moj= mp.contains(artist,artist_n)
-    if moj:
-        valoactual = mp.get(artist,artist_n) 
-        valor = me.getValue(valoactual)
-    else:
-        mp.put(artist,artist_n.lower(),lt.newList("ARRAY_LIST"))
-        artsta = mp.get(artist,artist_n)
-        valor= me.getValue(artsta)
-    lt.addLast(valor,event)
+
 
 def add_music_genre(analyzer, tag):
     newtag = new_musical_genre(tag['\ufeff"genero"'],tag["bpm_min"],tag["bpm_max"])
@@ -208,37 +225,52 @@ def update_keys(analyzer, track_n,key):
         om.put(analyzer_rbt,moj,valor) 
     lt.addLast(valor["events"],track_n)
 
-def updateDateIndex(map, event):
-    """
-    Se toma la fecha del crimen y se busca si ya existe en el arbol
-    dicha fecha.  Si es asi, se adiciona a su lista de crimenes
-    y se actualiza el indice de tipos de crimenes.
+def updateDateIndex(analyzer, event, key):
+    
+    analyzer_rbt = analyzer[key]
+    moj = event["created_at"]
 
-    Si no se encuentra creado un nodo para esa fecha en el arbol
-    se crea y se actualiza el indice de tipos de crimenes
-    """
-    occurreddate = event['created_at']
-    eventdate = datetime.datetime.strptime(occurreddate, '%H:%M')
-    entry = om.get(map, crimedate.date())
-    if entry is None:
-        datentry = newDataEntry(event)
-        om.put(map, eventdate.date(), datentry)
+    moj=moj[:len(moj)-3]
+    
+    eventdate = datetime.datetime.strptime(moj, "%Y-%m-%d %H:%M")
+    eventdate= eventdate.time()
+    if om.contains(analyzer_rbt,eventdate):
+        entry = om.get(analyzer_rbt,eventdate)
+        valor = me.getValue(entry)
     else:
-        datentry = me.getValue(entry)
-    addDateIndex(datentry, event)
-    return map
+        valor = {key: eventdate, "events": lt.newList("ARRAY_LIST")}
+        om.put(analyzer_rbt,eventdate,valor) 
+    lt.addLast(valor["events"],event)
 
-def newDataEntry(crime):
-    """
-    Crea una entrada en el indice por fechas, es decir en el arbol
-    binario.
-    """
-    entry = {'created_at': None, 'value': None}
-    entry['offenseIndex'] = m.newMap(numelements=30,
-                                     maptype='PROBING',
-                                     comparefunction=compareOffenses)
-    entry['lstcrimes'] = lt.newList('SINGLE_LINKED', compareDates)
-    return entry
+def update_keys(analyzer, track_n,key):
+    
+    analyzer_rbt = analyzer[key]
+    moj = track_n[key] # El valor numérico de la característica
+
+    if om.contains(analyzer_rbt,moj):
+        entry = om.get(analyzer_rbt,moj)
+        valor = me.getValue(entry)
+    else:
+        valor = {key: moj, "events": lt.newList("ARRAY_LIST")}
+        om.put(analyzer_rbt,moj,valor) 
+    lt.addLast(valor["events"],track_n)
+
+def updateDateIndexx(analyzer, event, key):
+    
+    analyzer_rbt = analyzer[key]
+    moj = event["created_at"]
+
+    moj=moj[:len(moj)-3]
+    
+    eventdate = datetime.datetime.strptime(moj, "%Y-%m-%d %H:%M")
+    eventdate= eventdate.time()
+    if om.contains(analyzer_rbt,eventdate):
+        entry = om.get(analyzer_rbt,eventdate)
+        valor = me.getValue(entry)
+    else:
+        valor = {key: eventdate, "events": lt.newList("ARRAY_LIST")}
+        om.put(analyzer_rbt,eventdate,valor) 
+    lt.addLast(valor["events"],event)
 
 # ==============================
 # Funciones de consulta
@@ -373,35 +405,134 @@ def genreSearch(analyzer,genres):
 #-------------------------------
 # ==============================
 def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
-    lst = om.values(analyzer['dates_c'], initialDate, finalDate)
-    lst1 = om.values(analyzer['dates_u'], initialDate, finalDate) 
+    Metal = lt.newList("ARRAY_LIST")
+    Rock = lt.newList("ARRAY_LIST")
+    Pop = lt.newList("ARRAY_LIST")
+    ChillOut = lt.newList("ARRAY_LIST")
+    Hip_Hop = lt.newList("ARRAY_LIST")
+    Down_tempo = lt.newList("ARRAY_LIST") 
+    reggae = lt.newList("ARRAY_LIST")
+    jazz_and_funk = lt.newList("ARRAY_LIST")
+    Ryb = lt.newList("ARRAY_LIST")
+    
+    lista=[Metal,Rock,Pop,ChillOut,Hip_Hop,Down_tempo,reggae,jazz_and_funk,Ryb]
+    listam=["Metal","Rock","Pop","ChillOut","Hip_Hop","Down_tempo","reggae","jazz_and_funk","Ryb"]
+    lst = lt.newList("ARRAY_LIST")
 
+    lst1 = om.values(analyzer['created_at'], initialDate, finalDate)
+    for y in lt.iterator(lst1):
+        for x in (y["events"]["elements"]):
+            if  mp.contains(analyzer["track_ID_S"],x["track_id"]):
+                lt.addLast(lst, x)
+    print(lt.size(lst))
+
+        
+
+
+    contador = 0
+    max = 0
+    maximom=""
+    maximo=None
+
+    for x in lt.iterator(lst):
+        
+            
+            if x["tempo"] > 60 and x["tempo"] < 90 :
+                lt.addLast(reggae, x)
+            if x["tempo"] > 70 and x["tempo"] < 100 :
+                lt.addLast(Down_tempo, x)
+            if x["tempo"] > 90 and x["tempo"] < 120 :
+                lt.addLast(ChillOut, x)
+            if x["tempo"] > 85 and x["tempo"] < 115 :
+                lt.addLast(Hip_Hop, x)
+            if x["tempo"] > 120 and x["tempo"] < 125 :
+                lt.addLast(jazz_and_funk, x)
+            if x["tempo"] > 100 and x["tempo"] < 130:
+                lt.addLast(Pop, x)
+            if x["tempo"] > 60 and x["tempo"] < 80 :
+                lt.addLast(Ryb, x)
+            if x["tempo"] > 110 and x["tempo"] < 140 :
+                lt.addLast(Rock, x)
+            if x["tempo"] > 100 and x["tempo"] < 160 :
+                lt.addLast(Metal, x)
+    for x in range(0,len(lista)):
+        if lt.size(lista[x]) > max:
+            max = lt.size(lista[x])
+            maximo= lista[x]
+            maximom = listam[x]
+       
+        
+
+        contador +=(lt.size(lista[x])) 
+
+    dic={}    
+    print("********************Req 5 *************************")
+    print("Reproduciones totales : " +str(contador))
+    print("*************Generos*******************************")
+    for x in range(0,len(lista)):
+        print((str(listam[x]) + " : "  + str((lt.size(lista[x])))) )
+
+    print("***************************************************")
+    print("El top genero es " +str(maximom)+" Con un toal de reproduciones de : " +str(max))
+    para=0
+
+    for x in lt.iterator(maximo):
+        para+=1
+        p=( mp.get(analyzer["track_ID_S"],x["track_id"]))
+        value = me.getValue(p)
+        total=0
+        for z in lt.iterator(value):
+            total+=1
+           
+            hast=(z["hashtag"])
+            hast=hast.lower()
+            
+            if mp.contains(analyzer["sen"], hast):
+                tu = (mp.get(analyzer["sen"],hast))
+                for x in ((me.getValue(tu))["elements"]):
+                   
+
+                   
+                 
+                
+                    dic[z["track_id"]]=[x["vader_avg"],total]
+          
+            
+
+        if para > 10:
+            break
+
+
+
+    print(dic) 
+    print("****************************************************")
+
+    
+
+    
+           
+        
+        
+       
+
+    
+
+        
+   
+    #lst1 = om.values(analyzer['dates_u'], initialDate, finalDate)
+    
     videosct = lt.newList("ARRAY_LIST")
     videosct1 = lt.newList("ARRAY_LIST")
     videosct2 = lt.newList("ARRAY_LIST")
-    # filtro 1: por minKey y MaxKey 
     
-    totchar = 0 # contador 
-    for lstdate in lt.iterator(lst):
-        # cuenta el número de tracks y las suma 
-        totchar += lt.size(lstdate['events'])
-        # filtro 2: crea una list con artist_id y saca lt.size()
-        for element in lt.iterator(lstdate["events"]):
-            if lt.isPresent(videosct, element['artist_id'])==0: 
-                lt.addLast(videosct, element['artist_id'])
     
-    totchar = 0 # contador 
-    for lstdate in lt.iterator(lst):
-        # cuenta el número de tracks y las suma 
-        totchar += lt.size(lstdate['events'])
-        # filtro 2: crea una list con artist_id y saca lt.size()
-        for element in lt.iterator(lstdate["events"]):
-            if lt.isPresent(videosct1, element['track_id'])==0: 
-                lt.addLast(videosct1, element['track_id'])
 
-    for videos in lt.iterator(videosct):
-        if lt.isPresent(videosct1,videos):
-            lt.addLast(videosct2,videos)
+
+        
+   
+
+    
+  
 
 
 
@@ -490,3 +621,4 @@ def lastGenre(analyzer,new_genre):
         if llave == new_genre:
             answer = llave
     return answer
+

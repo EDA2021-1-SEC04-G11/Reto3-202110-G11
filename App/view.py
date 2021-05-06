@@ -24,7 +24,7 @@ import config as cf
 import sys
 import controller
 from DISClib.ADT import list as lt
-iassert cf
+assert cf
 
 
 """
@@ -188,9 +188,10 @@ while True:
                 value= False 
     elif int(inputs[0]) == 7:
         
-        initialDate = input("Fecha Inicial (YYYY-MM-DD): ")
-        finalDate = input("Fecha Final (YYYY-MM-DD): ")
-        total = controller.get(cont, initialDate, finalDate)
+        initialDate = input("Fecha Inicial (HH;mm): ")
+        finalDate = input("Fecha Final (HH:mm): ")
+        total = controller.getgeneromusicalmasescuchadoeneltiempo(cont, initialDate, finalDate)
+        print(total)
     else:
         sys.exit(0)
 sys.exit(0)
