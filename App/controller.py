@@ -24,6 +24,8 @@ import datetime
 import config as cf
 import model
 import csv
+import time
+import tracemalloc
 
 
 """
@@ -85,6 +87,7 @@ def loadUserTrack_file(analyzer):
     input_file = csv.DictReader(open(userTrack_file, encoding="utf-8"),
                                     delimiter=",")
     for event in input_file:
+        model.add_UTrack(analyzer, event)
         for key,value in event.items():
             event[key] = conv(value)
         model.add_userTrack(analyzer, event)
@@ -118,34 +121,52 @@ def getReproductions(analyzer, content_char, value_min,value_max):
     """
     Requerimiento 1 
     """
-    return model.getReproductions(analyzer, content_char, value_min,value_max)
+    # respuesta
+    answer= model.getReproductions(analyzer, content_char, value_min,value_max)
+    return answer
 
 def partyMusic(analyzer, min_energy, max_energy,min_danceability,max_danceability):
     """
     Requirimiento 2
     """
-    return model.partyMusic(analyzer, min_energy, max_energy,min_danceability,max_danceability)
+    answer= model.partyMusic(analyzer, min_energy, max_energy,min_danceability,max_danceability)
+
+    return answer
 
 def EstudyMusic(analyzer, min_instru, max_instru,min_tempo,max_tempo):
-    return model.EstudyMusic(analyzer, min_instru, max_instru,min_tempo,max_tempo)
+
+    answer= model.EstudyMusic(analyzer, min_instru, max_instru,min_tempo,max_tempo)
+
+    return answer
 
 def newUserGenre(analyzer,new_genre,tempo_low,tempo_high):
     return model.newUserGenre(analyzer,new_genre,tempo_low,tempo_high)
 
-def genreSearch(cont,genres):
-    return model.genreSearch(cont,genres)
-
-
 def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
     initialDate = datetime.datetime.strptime(initialDate, '%H:%M')
     
-    
 
-    
     finalDate = datetime.datetime.strptime(finalDate, '%H:%M')
-    
 
-    return model.getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate.time(), finalDate.time())
+    answer = model.getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate.time(), finalDate.time())
+
+    return answer 
+
+def genreSearch(cont,genres):
+
+    answer= model.genreSearch(cont,genres)
+
+    return answer
+
+# ======================================
+# Funciones de tamaño del catálogo
+# ======================================
+def videosSize(catalog):
+    """
+    Numero de videos cargados al catalogo
+    """
+    return model.videosSize(catalog)
+
 
 # ======================================
 # Funciones de tamaño del catálogo
@@ -177,11 +198,35 @@ def lastGenre(cont,new_genre):
     return model.lastGenre(cont,new_genre)
 
 # ======================================
-# Funciones de carga previas al catálogo 
+# Funciones para medir tiempo y memoria
 # ======================================
-def loadData0(analyzer):
+
+
+def getTime():
     """
-    Carga los datos de los archivos CSV en el modelo
+    devuelve el instante tiempo de procesamiento en milisegundos
     """
-    loadEvents(analyzer)
-    loadmusical_genre(analyzer)
+    return float(time.perf_counter()*1000)
+
+
+def getMemory():
+    """
+    toma una muestra de la memoria alocada en instante de tiempo
+    """
+    return tracemalloc.take_snapshot()
+
+
+def deltaMemory(start_memory, stop_memory):
+    """
+    calcula la diferencia en memoria alocada del programa entre dos
+    instantes de tiempo y devuelve el resultado en bytes (ej.: 2100.0 B)
+    """
+    memory_diff = stop_memory.compare_to(start_memory, "filename")
+    delta_memory = 0.0
+
+    # suma de las diferencias en uso de memoria
+    for stat in memory_diff:
+        delta_memory = delta_memory + stat.size_diff
+    # de Byte -> kByte
+    delta_memory = delta_memory/1024.0
+    return delta_memory

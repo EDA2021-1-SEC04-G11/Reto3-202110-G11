@@ -39,7 +39,7 @@ Se define la estructura de un catálogo de videos. El catálogo tendrá dos list
 los mismos.
 """
 # -----------------------------------------------------
-# API del TAD Catalogo de Libros
+# API del TAD Analyzer
 # -----------------------------------------------------
 
 
@@ -88,6 +88,7 @@ def newAnalyzer():
     # Tablas de Hash 
     analyzer['artist_ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer['track_ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
+    analyzer['ID'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer["musical_genre"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer["sen"] = mp.newMap(15,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
     analyzer['track_ID_S'] = mp.newMap(10000,maptype='PROBING',loadfactor=0.5, comparefunction=compareByName)
@@ -112,6 +113,8 @@ def add_event(analyzer, event):
 
     updateDateIndex(analyzer, event, "created_at")
 
+def add_UTrack(analyzer,event):
+    add_ID(analyzer,str(str(event["track_id"].strip())+str(event["user_id"].strip())+ str(event["created_at"])),event)
             
 def add_userTrack(analyzer, event):
     artist_n=event["track_id"].strip()
@@ -126,6 +129,26 @@ def add_userTrack(analyzer, event):
         artsta = mp.get(artist,artist_n)
         valor= me.getValue(artsta)
     lt.addLast(valor,event)
+
+def add_ID(analyzer, artist_n,event):
+    """
+    param analyzer: el catálogo de videos subidos con loadData()
+    param artist_n: nombre del artista que se va a guardar 
+    param video: c/ video 
+    returns: Adicional por país específico
+    """
+    artist = analyzer['ID']
+    moj= mp.contains(artist,artist_n)
+    if moj:
+        valoactual = mp.get(artist,artist_n) 
+        valor = me.getValue(valoactual)
+    else:
+        mp.put(artist,artist_n,lt.newList("ARRAY_LIST"))
+        artsta = mp.get(artist,artist_n)
+        valor= me.getValue(artsta)
+    lt.addLast(valor,event)
+
+
 def add_sentiment(analyzer, event):
     artist_n=event["hashtag"].strip()
 
@@ -139,15 +162,8 @@ def add_sentiment(analyzer, event):
         mp.put(artist,artist_n,lt.newList("ARRAY_LIST"))
         artsta = mp.get(artist,artist_n)
         valor= me.getValue(artsta)
-    lt.addLast(valor,event)
-    
-    
-    
-    
+    lt.addLast(valor,event) 
 
-
-  
-    
 
 
 # ==============================
@@ -209,9 +225,20 @@ def addTrack_ID(analyzer, artist_n,event):
 def add_music_genre(analyzer, tag):
     newtag = new_musical_genre(tag['\ufeff"genero"'],tag["bpm_min"],tag["bpm_max"])
     mp.put(analyzer["musical_genre"] ,tag['\ufeff"genero"'], newtag)
+
+def addlist_id(analyzer):
+    # Creación de una lista 
+    trackct = lt.newList("ARRAY_LIST",cmpVideosByLikes)
+
+    for every_genre in analyzer["ID"]["table"]["elements"]: 
+        key = every_genre["key"]
+        if key != None:
+            lt.addLast(trackct,key)
+    return trackct
 # ==============================
 # Funciones para update
 # ==============================
+
 def update_keys(analyzer, track_n,key):
     
     analyzer_rbt = analyzer[key]
@@ -242,18 +269,6 @@ def updateDateIndex(analyzer, event, key):
         om.put(analyzer_rbt,eventdate,valor) 
     lt.addLast(valor["events"],event)
 
-def update_keys(analyzer, track_n,key):
-    
-    analyzer_rbt = analyzer[key]
-    moj = track_n[key] # El valor numérico de la característica
-
-    if om.contains(analyzer_rbt,moj):
-        entry = om.get(analyzer_rbt,moj)
-        valor = me.getValue(entry)
-    else:
-        valor = {key: moj, "events": lt.newList("ARRAY_LIST")}
-        om.put(analyzer_rbt,moj,valor) 
-    lt.addLast(valor["events"],track_n)
 
 def updateDateIndexx(analyzer, event, key):
     
@@ -285,17 +300,21 @@ def getReproductions(analyzer, content_char, value_min,value_max):
     Requerimiento 1
     """
     # Creación de una lista 
-    videosct = lt.newList("ARRAY_LIST")
+    videosct = lt.newList("ARRAY_LIST") 
     # filtro 1: por minKey y MaxKey 
-    lst = om.values(analyzer[content_char], value_min, value_max)
+    lst = om.values(analyzer[content_char], value_min, value_max) 
     totchar = 0 # contador 
+    #variable = addlist_id(analyzer)
+    
     for lstdate in lt.iterator(lst):
-        # cuenta el número de tracks y las suma 
-        totchar += lt.size(lstdate['events'])
-        # filtro 2: crea una list con artist_id y saca lt.size()
         for element in lt.iterator(lstdate["events"]):
+            #tracku =str(str(element["track_id"])+ str(int(element["user_id"]))+ str(element["created_at"]))
             if lt.isPresent(videosct, element['artist_id'])==0: 
                 lt.addLast(videosct, element['artist_id'])
+        # cuenta el número de tracks y las suma 
+        #if tracku in variable["elements"]:
+            totchar += lt.size(lstdate['events'])
+        # filtro 2: crea una list con artist_id y saca lt.size()
 
     return {"Total of reproductions":totchar, "Total of unique artists": lt.size(videosct)} 
 
@@ -308,20 +327,26 @@ def partyMusic(analyzer, min_energy, max_energy,min_danceability,max_danceabilit
     Requerimiento 2
     """
     # Creación de un map y lista
-    track_map = om.newMap(omaptype='RBT',comparefunction=compareDates)
-    videosct = lt.newList("ARRAY_LIST")
+    track_map = om.newMap(omaptype='RBT',comparefunction=compareDates) 
+    videosct = lt.newList("ARRAY_LIST") 
+    #variable = addlist_id(analyzer)#
     
     # filtro 1: por minKey y MaxKey de energy 
-    lst = om.values(analyzer["energy"], min_energy, max_energy)
+    lst = om.values(analyzer["energy"], min_energy, max_energy) 
     for lstdate in lt.iterator(lst):
-        
+        # filtro 1: por minKey y MaxKey de danceability 
         for element in lt.iterator(lstdate["events"]):
-            if (element["danceability"] > min_danceability) and (element["danceability"]< max_danceability):
-                if om.contains(track_map,element["track_id"])== False:
+
+            #tracku =str(str(element["track_id"])+ str(int(element["user_id"]))+ str(element["created_at"]))#
+
+            if (element["danceability"] >= min_danceability) and (element["danceability"]<= max_danceability):
+                if om.contains(track_map,element["track_id"])== False: #and tracku in variable["elements"]:#
                     om.put(track_map,element["track_id"],
                     {"danceability":element["danceability"],"energy":element["energy"]})
+
     size= om.size(track_map)
     print("Total of unique track events: ", size)
+    # Generación Random de 5 track_ID 
     for pos in random.sample(range(1, size), 5):
         key = om.select(track_map,pos)
         item = om.get(track_map,key)
@@ -507,18 +532,6 @@ def getgeneromusicalmasescuchadoeneltiempo(analyzer, initialDate, finalDate):
     print(dic) 
     print("****************************************************")
 
-    
-
-    
-           
-        
-        
-       
-
-    
-
-    
-
 
 # Funciones de Comparacion
 # ==============================
@@ -557,6 +570,10 @@ def compareIds(id1, id2):
         return 1
     else:
         return -1
+
+def cmpVideosByLikes(video1, video2):
+
+    return (str(video1) > str(video2))
 
 # Funciones de Tamaño
 

@@ -60,13 +60,12 @@ def print5(analyzer):
 def printMenu():
     print("*******************************************")
     print("Bienvenido")
-    print("1- Cargar los Datos")
-    print("2- Cargar información al analizador")
-    print("3- Requerimiento 1: Caracterizar las reproducciones")
-    print("4- Requerimiento 2: Música para festejar")
-    print("5- Requerimiento 3: Música según el ánimo")
-    print("6- Requerimiento 4: Música para estudiar")
-    print("7- Requerimiento 5: Indicar el género musical más escuchado en un tiempo")
+    print("1- Cargar información al analizador")
+    print("2- Requerimiento 1: Caracterizar las reproducciones")
+    print("3- Requerimiento 2: Música para festejar")
+    print("4- Requerimiento 3: Música según el ánimo")
+    print("5- Requerimiento 4: Música para estudiar")
+    print("6- Requerimiento 5: Indicar el género musical más escuchado en un tiempo")
     print("0- Salir")
     print("*******************************************")
 # ___________________________________________________
@@ -103,12 +102,7 @@ while True:
     printMenu()
     inputs = input('Seleccione una opción para continuar\n')
 
-    if int(inputs[0]) ==1:
-        print("\nCargando Datos y comparando....")
-        cont = controller.init()
-        answer = controller.loadData0(cont)
-
-    elif int(inputs[0]) == 2:
+    if int(inputs[0]) == 1:
         print("\nCargando información del analizador ....")
 
         cont = controller.init()
@@ -120,7 +114,7 @@ while True:
         print(print5(cont["events"]))
 
 
-    elif int(inputs[0]) ==3:
+    elif int(inputs[0]) ==2:
         content_char = str(input("Característica de contenido a evaluar:"))
         value_min = float(input("Valor mínimo de la característica del contenido:"))
         value_max = float(input("Valor mínimo de la característica del contenido:"))
@@ -130,7 +124,7 @@ while True:
         print("++++++ Req 1. Results... ++++++")
         print("\nInstrumentalness is between {} and {}\n".format(value_min, value_max))
         print(result)
-    elif int(inputs[0]) == 4: 
+    elif int(inputs[0]) == 3: 
         min_energy= float(input("Ingrese el valor mínimo para la característica Energy:"))
         max_energy= float(input("Ingrese el valor máximo para la característica Energy:"))
         min_danceability= float(input("Ingrese el valor mínimo para la característica Danceability:"))
@@ -144,7 +138,7 @@ while True:
         for x in lt.iterator(result):
             print("Track:{} with energy of {} and danceability of {}".format(x["track_id"],x["energy"],x["danceability"]))
             
-    elif int(inputs[0]) == 5:
+    elif int(inputs[0]) == 4:
 
         min_instru= float(input("Ingrese el valor mínimo para la característica Instrumentalness:"))
         max_instru= float(input("Ingrese el valor máximo para la característica Instrumentalness:"))
@@ -160,7 +154,7 @@ while True:
             print("Track:{} with instrumentalness of {} and tempo of {}".format(x["track_id"],x["instrumentalness"],x["tempo"]))
 
         
-    elif int(inputs[0]) == 6:
+    elif int(inputs[0]) == 5:
         value = True
         while value == True:
             printreq4()
@@ -186,7 +180,7 @@ while True:
                 print(result)
             else:
                 value= False 
-    elif int(inputs[0]) == 7:
+    elif int(inputs[0]) == 6:
         
         initialDate = input("Fecha Inicial (HH;mm): ")
         finalDate = input("Fecha Final (HH:mm): ")
